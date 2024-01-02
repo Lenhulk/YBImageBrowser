@@ -70,11 +70,16 @@ BOOL YBIBIsIphoneXSeries(void) {
 
 CGFloat YBIBStatusbarHeight(void) {
     CGFloat height = 0;
-    if (@available(iOS 11.0, *)) {
-        height = UIApplication.sharedApplication.delegate.window.safeAreaInsets.top;
-    }
+//    if (@available(iOS 11.0, *)) {
+//        height = UIApplication.sharedApplication.delegate.window.safeAreaInsets.top;
+    //    }
+    // 解决闪退崩溃问题
     if (height <= 0) {
-        height = UIApplication.sharedApplication.statusBarFrame.size.height;
+        if (@available(iOS 13.0, *)) {
+            height = [UIApplication sharedApplication].windows.firstObject.windowScene.statusBarManager.statusBarFrame.size.height;
+        } else {
+            height = [UIApplication sharedApplication].delegate.window.safeAreaInsets.top;
+        }
     }
     if (height <= 0) {
         height = 20;
@@ -84,29 +89,38 @@ CGFloat YBIBStatusbarHeight(void) {
 
 CGFloat YBIBSafeAreaBottomHeight(void) {
     CGFloat bottom = 0;
-    if (@available(iOS 11.0, *)) {
-        bottom = UIApplication.sharedApplication.delegate.window.safeAreaInsets.bottom;
+//    if (@available(iOS 11.0, *)) {
+//        bottom = UIApplication.sharedApplication.delegate.window.safeAreaInsets.bottom;
+//    }
+//    
+    // 解决闪退崩溃问题
+    if (@available(iOS 13.0, *)) {
+        bottom = [UIApplication sharedApplication].windows.firstObject.safeAreaInsets.bottom;
+    } else {
+        bottom = [UIApplication sharedApplication].delegate.window.safeAreaInsets.bottom;
     }
+
     return bottom;
 }
 
 UIImage *YBIBSnapshotView(UIView *view) {
-//    UIGraphicsBeginImageContextWithOptions(view.bounds.size, YES, [UIScreen mainScreen].scale);
+//    UIGraphicsBeginImageContextWithOptions(view.bounds.size, NO, [UIScreen mainScreen].scale);
 //    [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:NO];
 //    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
 //    UIGraphicsEndImageContext();
-    
+//    return image;
+    /// 解决视频闪退崩溃问题
     UIGraphicsImageRendererFormat *format = [[UIGraphicsImageRendererFormat alloc] init];
-    format.opaque = YES;
+    format.opaque = NO;
     format.scale = [UIScreen mainScreen].scale;
-    
     UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:view.bounds.size format:format];
-    
-    UIImage *image = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
-        [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:NO];
+    UIImage *newImage = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
+        CGContextRef context = UIGraphicsGetCurrentContext();
+//        CGContextSetFillColorWithColor(context, color.CGColor);
+        CGContextFillRect(context, CGRectMake(0, 0, view.bounds.size.width, view.bounds.size.height));
     }];
-    
-    return image;
+
+    return newImage;
 }
 
 UIEdgeInsets YBIBPaddingByBrowserOrientation(UIDeviceOrientation orientation) {
